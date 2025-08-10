@@ -411,6 +411,53 @@ export async function wsMain({ url, previewMode, isContentPreview }: WsArgs) {
       } else if (message[0] === "outline") {
         console.log("Experimental feature: outline rendering");
         return;
+      } else if (message[0] === "annotation-data") {
+        // Handle annotation data from backend
+        const annotationData = dec.decode((message[1] as any).buffer);
+        console.log("Received annotation data:", annotationData);
+        
+        if (window.annotationManager) {
+          try {
+            const data = JSON.parse(annotationData);
+            window.annotationManager.importAnnotations(data);
+          } catch (error) {
+            console.error("Failed to parse annotation data:", error);
+          }
+        }
+        return;
+      } else if (message[0] === "annotation-command") {
+        // Handle annotation commands from backend
+        const parts = dec.decode((message[1] as any).buffer).split(',', 2);
+        const command = parts[0];
+        const data = parts[1] || '';
+        
+        console.log("Received annotation command:", command, data);
+        
+        if (window.annotationManager) {
+          switch (command) {
+            case 'load':
+              // Trigger loading of saved annotations
+              if (typeof acquireVsCodeApi !== "undefined") {
+                const vscodeAPI = acquireVsCodeApi();
+                vscodeAPI.postMessage({
+                  type: 'requestAnnotations'
+                });
+              }
+              break;
+            case 'update':
+              try {
+                const updateData = JSON.parse(data);
+                // Handle annotation updates
+                console.log("Annotation update:", updateData);
+              } catch (error) {
+                console.error("Failed to parse annotation update:", error);
+              }
+              break;
+            default:
+              console.warn("Unknown annotation command:", command);
+          }
+        }
+        return;
       }
 
       svgDoc.addChangement(message as any);

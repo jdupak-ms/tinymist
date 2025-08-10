@@ -1,5 +1,3 @@
-/// This file provides the typst document preview feature for vscode.
-
 import * as vscode from "vscode";
 import * as path from "path";
 import {
@@ -28,6 +26,7 @@ import {
 import { l10nMsg } from "../l10n";
 import { IContext } from "../context";
 import { extensionState } from "../state";
+import { AnnotationController, AnnotationData } from "./annotations";
 
 /**
  * The launch preview implementation which depends on `isCompat` of previewActivate.
@@ -58,6 +57,10 @@ export function previewPreload(context: vscode.ExtensionContext) {
  * extension.
  */
 export function previewActivate(context: vscode.ExtensionContext, isCompat: boolean) {
+  // Initialize annotation controller
+  const annotationController = AnnotationController.getInstance(context);
+  annotationController.registerCommands();
+
   // Provides `ContentView` (ContentPreviewProvider) at the sidebar, which is a list of thumbnail
   // images.
   getPreviewHtml(context).then((html) => {
@@ -369,6 +372,36 @@ export async function openPreviewInWebView({
   // Sets the HTML content to the webview panel.
   // This will reload the webview panel if it's already opened.
   panel.webview.html = html;
+
+  // Setup annotation message handling
+  const annotationController = AnnotationController.getInstance();
+  annotationController.setCurrentDocument(activeEditor.document.uri);
+  
+  panel.webview.onDidReceiveMessage((message) => {
+    switch (message.type) {
+      case 'annotationModeChanged':
+        vscode.commands.executeCommand('setContext', 'tinymist.annotationMode', message.enabled);
+        vscode.commands.executeCommand('setContext', 'tinymist.previewActive', true);
+        break;
+      case 'annotationData':
+        annotationController.handleAnnotationData(message.data as AnnotationData);
+        // Show save dialog for export
+        if (message.export) {
+          vscode.window.showSaveDialog({
+            filters: {
+              'Annotation Files': ['json']
+            },
+            defaultUri: vscode.Uri.file(`annotations-${Date.now()}.json`)
+          }).then(uri => {
+            if (uri) {
+              vscode.workspace.fs.writeFile(uri, Buffer.from(JSON.stringify(message.data, null, 2)));
+              vscode.window.showInformationMessage('Annotations exported successfully');
+            }
+          });
+        }
+        break;
+    }
+  });
 
   // Forwards the localhost port to the external URL. Since WebSocket runs over HTTP, it should be fine.
   // https://code.visualstudio.com/api/advanced-topics/remote-extensions#forwarding-localhost

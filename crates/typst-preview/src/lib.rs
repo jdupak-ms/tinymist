@@ -1,12 +1,14 @@
 mod actor;
 mod debug_loc;
 mod outline;
+pub mod annotations;
 
 pub use crate::actor::editor::{
     CompileStatus, ControlPlaneMessage, ControlPlaneResponse, ControlPlaneRx, ControlPlaneTx,
     PanelScrollByPositionRequest,
 };
 pub use crate::outline::Outline;
+pub use crate::annotations::{AnnotationManager, AnnotationDocument, Annotation};
 
 use std::sync::{Arc, OnceLock};
 use std::{collections::HashMap, future::Future, path::PathBuf, pin::Pin};

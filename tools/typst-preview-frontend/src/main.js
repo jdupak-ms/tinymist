@@ -5,11 +5,19 @@ import "./styles/toolbar.css";
 import "./styles/layout.css";
 import "./styles/help-panel.css";
 import "./styles/outline.css";
+import "./styles/annotations.css";
 
 import { wsMain, PreviewMode } from "./ws";
 import { setupDrag } from "./drag";
+import { AnnotationManager } from "./annotations";
+import { AnnotationUI } from "./annotation-ui";
+import { AnimationPlayer } from "./animation-player";
 
 window.documents = [];
+
+// Global annotation system
+window.annotationManager = null;
+window.annotationUI = null;
 
 /// Main entry point of the frontend program.
 main();
@@ -17,9 +25,79 @@ main();
 function main() {
   const wsArgs = retrieveWsArgs();
   const { nextWs } = buildWs();
-  window.onload = () => nextWs(wsArgs);
+  window.onload = () => {
+    nextWs(wsArgs);
+    setupAnnotationSystem();
+  };
   setupVscodeChannel(nextWs);
   setupDrag();
+}
+
+function setupAnnotationSystem() {
+  const container = document.getElementById('typst-app');
+  if (container) {
+    window.annotationManager = new AnnotationManager(container);
+    window.annotationUI = new AnnotationUI(window.annotationManager);
+    
+    // Setup auto-save functionality
+    window.annotationManager.on('annotationAdded', () => saveAnnotations());
+    window.annotationManager.on('annotationUpdated', () => saveAnnotations());
+    window.annotationManager.on('annotationRemoved', () => saveAnnotations());
+    
+    // Setup keyboard shortcuts
+    document.addEventListener('keydown', (e) => {
+      if (e.ctrlKey || e.metaKey) {
+        switch (e.key) {
+          case 'e':
+            e.preventDefault();
+            toggleAnnotationEditMode();
+            break;
+          case 'a':
+            if (window.annotationManager.isEditMode) {
+              e.preventDefault();
+              window.annotationManager.setCurrentTool('arrow');
+            }
+            break;
+          case 'h':
+            if (window.annotationManager.isEditMode) {
+              e.preventDefault();
+              window.annotationManager.setCurrentTool('highlight-box');
+            }
+            break;
+        }
+      }
+    });
+  }
+}
+
+function saveAnnotations() {
+  if (window.annotationManager && window.typstWebsocket) {
+    const data = window.annotationManager.exportAnnotations();
+    const message = `annotation-save ${JSON.stringify(data)}`;
+    window.typstWebsocket.send(message);
+  }
+}
+
+function loadAnnotations() {
+  if (window.typstWebsocket) {
+    window.typstWebsocket.send('annotation-load');
+  }
+}
+
+function toggleAnnotationEditMode() {
+  if (window.annotationManager) {
+    const newMode = !window.annotationManager.isEditMode;
+    window.annotationManager.setEditMode(newMode);
+    
+    // Notify VS Code extension about mode change
+    if (typeof acquireVsCodeApi !== "undefined") {
+      const vscodeAPI = acquireVsCodeApi();
+      vscodeAPI.postMessage({
+        type: 'annotationModeChanged',
+        enabled: newMode
+      });
+    }
+  }
 }
 
 /// Placeholders for typst-preview program initializing frontend
@@ -121,6 +199,41 @@ function setupVscodeChannel(nextWs) {
       }
       case "outline": {
         console.log("outline", message);
+        break;
+      }
+      case "toggleAnnotationMode": {
+        console.log("toggleAnnotationMode", message);
+        toggleAnnotationEditMode();
+        break;
+      }
+      case "setAnnotationTool": {
+        console.log("setAnnotationTool", message);
+        if (window.annotationManager) {
+          window.annotationManager.setCurrentTool(message.tool);
+        }
+        break;
+      }
+      case "exportAnnotations": {
+        console.log("exportAnnotations", message);
+        if (window.annotationManager) {
+          const data = window.annotationManager.exportAnnotations();
+          vscodeAPI?.postMessage({
+            type: 'annotationData',
+            data: data
+          });
+        }
+        break;
+      }
+      case "importAnnotations": {
+        console.log("importAnnotations", message);
+        if (window.annotationManager && message.data) {
+          window.annotationManager.importAnnotations(message.data);
+        }
+        break;
+      }
+      case "requestAnnotations": {
+        console.log("requestAnnotations", message);
+        loadAnnotations();
         break;
       }
     }

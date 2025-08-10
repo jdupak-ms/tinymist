@@ -41,6 +41,9 @@ pub enum EditorActorRequest {
     DocToSrcJump(DocToSrcJumpInfo),
     Outline(Outline),
     CompileStatus(CompileStatus),
+    AnnotationSave(String),   // JSON annotation data to save
+    AnnotationLoad,           // Request to load annotations
+    AnnotationUpdate(String), // JSON annotation update
 }
 
 pub struct ControlPlaneTx {
@@ -196,6 +199,21 @@ impl<T: EditorServer> EditorActor<T> {
                         },
                         EditorActorRequest::Outline(outline) => {
                             self.editor_conn.resp_ctl_plane("Outline", ControlPlaneResponse::Outline(outline)).await
+                        }
+                        EditorActorRequest::AnnotationSave(data) => {
+                            // Send annotation data to webview for saving
+                            self.webview_sender.send(WebviewActorRequest::AnnotationData(data)).log_error("EditorActor");
+                            false
+                        }
+                        EditorActorRequest::AnnotationLoad => {
+                            // Request annotation load - this could trigger loading from storage
+                            self.webview_sender.send(WebviewActorRequest::AnnotationCommand("load".to_string(), "".to_string())).log_error("EditorActor");
+                            false
+                        }
+                        EditorActorRequest::AnnotationUpdate(data) => {
+                            // Send annotation update to webview
+                            self.webview_sender.send(WebviewActorRequest::AnnotationCommand("update".to_string(), data)).log_error("EditorActor");
+                            false
                         }
                     };
 
