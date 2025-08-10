@@ -4,19 +4,26 @@
  */
 
 import { AnnotationManager, AnnotationType, Annotation, ArrowAnnotation, HighlightBoxAnnotation } from './annotations';
+import { AnimationPlayer, createFadeInAnimation, createFadeOutAnimation, createMoveAnimation, createColorChangeAnimation, createPulseAnimation } from './animation-player';
 
 export class AnnotationUI {
   private manager: AnnotationManager;
+  private animationPlayer: AnimationPlayer;
   private toolbar: HTMLElement | null = null;
   private propertiesPanel: HTMLElement | null = null;
   private animationControls: HTMLElement | null = null;
   private contextMenu: HTMLElement | null = null;
   private isAnimationMode: boolean = false;
+  private animationPlayButton: HTMLElement | null = null;
+  private animationTimeline: HTMLElement | null = null;
+  private animationTimeDisplay: HTMLElement | null = null;
 
   constructor(manager: AnnotationManager) {
     this.manager = manager;
+    this.animationPlayer = new AnimationPlayer(manager);
     this.setupEventListeners();
     this.createUI();
+    this.setupAnimationPlayerListeners();
   }
 
   private setupEventListeners(): void {
@@ -46,6 +53,29 @@ export class AnnotationUI {
     this.createPropertiesPanel();
     this.createAnimationControls();
     this.createContextMenu();
+    this.setupAnimationPlayerListeners();
+  }
+
+  private setupAnimationPlayerListeners(): void {
+    this.animationPlayer.on('play', () => {
+      this.updatePlayButton(true);
+    });
+
+    this.animationPlayer.on('pause', () => {
+      this.updatePlayButton(false);
+    });
+
+    this.animationPlayer.on('stop', () => {
+      this.updatePlayButton(false);
+    });
+
+    this.animationPlayer.on('timeUpdate', (time: number) => {
+      this.updateAnimationProgress(time);
+    });
+
+    this.animationPlayer.on('durationChanged', (duration: number) => {
+      this.updateAnimationDuration(duration);
+    });
   }
 
   private createToolbar(): void {
@@ -164,6 +194,30 @@ export class AnnotationUI {
       </button>
     `;
 
+    // Store references to animation control elements
+    this.animationPlayButton = this.animationControls.querySelector('[data-action="play"]');
+    this.animationTimeline = this.animationControls.querySelector('.animation-timeline');
+    this.animationTimeDisplay = this.animationControls.querySelector('.animation-time-display');
+
+    // Add click handlers for animation controls
+    this.animationControls.addEventListener('click', (e) => {
+      const button = (e.target as HTMLElement).closest('[data-action]') as HTMLButtonElement;
+      if (!button) return;
+
+      const action = button.dataset.action;
+      this.handleAnimationAction(action!);
+    });
+
+    // Add timeline interaction
+    if (this.animationTimeline) {
+      this.animationTimeline.addEventListener('click', (e) => {
+        const rect = this.animationTimeline.getBoundingClientRect();
+        const progress = (e.clientX - rect.left) / rect.width;
+        const time = progress * this.animationPlayer.getTotalDuration();
+        this.animationPlayer.seekTo(time);
+      });
+    }
+
     document.body.appendChild(this.animationControls);
   }
 
@@ -189,6 +243,26 @@ export class AnnotationUI {
           <path d="M6 6v4h4V6H6zm1 1h2v2H7V7z"/>
         </svg>
         Send to Back
+      </div>
+      <div class="annotation-context-menu-separator"></div>
+      <div class="annotation-context-menu-item" data-action="add-fade-in">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 3l3 3h-2v4H7V6H5l3-3z"/>
+        </svg>
+        Add Fade In
+      </div>
+      <div class="annotation-context-menu-item" data-action="add-fade-out">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 13l-3-3h2V6h2v4h2l-3 3z"/>
+        </svg>
+        Add Fade Out
+      </div>
+      <div class="annotation-context-menu-item" data-action="add-pulse">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+          <circle cx="8" cy="8" r="3"/>
+          <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1"/>
+        </svg>
+        Add Pulse
       </div>
       <div class="annotation-context-menu-separator"></div>
       <div class="annotation-context-menu-item" data-action="delete">
@@ -224,6 +298,73 @@ export class AnnotationUI {
         this.importAnnotations();
         break;
     }
+  }
+
+  private handleAnimationAction(action: string): void {
+    switch (action) {
+      case 'play':
+        if (this.animationPlayer.isAnimationPlaying()) {
+          this.animationPlayer.pause();
+        } else {
+          this.animationPlayer.play();
+        }
+        break;
+      case 'step-back':
+        this.animationPlayer.stepBackward();
+        break;
+      case 'step-forward':
+        this.animationPlayer.stepForward();
+        break;
+    }
+  }
+
+  private updatePlayButton(isPlaying: boolean): void {
+    if (!this.animationPlayButton) return;
+
+    const playIcon = this.animationPlayButton.querySelector('#play-icon');
+    const pauseIcon = this.animationPlayButton.querySelector('#pause-icon');
+
+    if (playIcon && pauseIcon) {
+      playIcon.style.display = isPlaying ? 'none' : 'block';
+      pauseIcon.style.display = isPlaying ? 'block' : 'none';
+    }
+  }
+
+  private updateAnimationProgress(time: number): void {
+    if (!this.animationTimeline) return;
+
+    const progress = this.animationPlayer.getProgress();
+    const progressBar = this.animationTimeline.querySelector('.animation-timeline-progress') as HTMLElement;
+    const thumb = this.animationTimeline.querySelector('.animation-timeline-thumb') as HTMLElement;
+
+    if (progressBar) {
+      progressBar.style.width = `${progress * 100}%`;
+    }
+
+    if (thumb) {
+      thumb.style.left = `${progress * 100}%`;
+    }
+
+    this.updateTimeDisplay(time);
+  }
+
+  private updateAnimationDuration(duration: number): void {
+    this.updateTimeDisplay(this.animationPlayer.getCurrentTime());
+  }
+
+  private updateTimeDisplay(currentTime: number): void {
+    if (!this.animationTimeDisplay) return;
+
+    const totalDuration = this.animationPlayer.getTotalDuration();
+    const currentMinutes = Math.floor(currentTime / 60000);
+    const currentSeconds = Math.floor((currentTime % 60000) / 1000);
+    const totalMinutes = Math.floor(totalDuration / 60000);
+    const totalSecondsValue = Math.floor((totalDuration % 60000) / 1000);
+
+    const currentTimeStr = `${currentMinutes}:${currentSeconds.toString().padStart(2, '0')}`;
+    const totalTimeStr = `${totalMinutes}:${totalSecondsValue.toString().padStart(2, '0')}`;
+
+    this.animationTimeDisplay.textContent = `${currentTimeStr} / ${totalTimeStr}`;
   }
 
   private updateToolbarSelection(tool: AnnotationType | null): void {
@@ -475,9 +616,44 @@ export class AnnotationUI {
       case 'send-to-back':
         // TODO: Implement z-index management
         break;
+      case 'add-fade-in':
+        this.addAnimationToAnnotation(annotationId, 'fade-in');
+        break;
+      case 'add-fade-out':
+        this.addAnimationToAnnotation(annotationId, 'fade-out');
+        break;
+      case 'add-pulse':
+        this.addAnimationToAnnotation(annotationId, 'pulse');
+        break;
       case 'delete':
         this.manager.removeAnnotation(annotationId);
         break;
+    }
+  }
+
+  private addAnimationToAnnotation(annotationId: string, animationType: string): void {
+    let track;
+    const duration = 2000; // Default 2 seconds
+
+    switch (animationType) {
+      case 'fade-in':
+        track = createFadeInAnimation(annotationId, duration);
+        break;
+      case 'fade-out':
+        track = createFadeOutAnimation(annotationId, duration);
+        break;
+      case 'pulse':
+        track = createPulseAnimation(annotationId, duration);
+        break;
+      default:
+        return;
+    }
+
+    this.animationPlayer.addTrack(track);
+    
+    // Switch to animation mode if not already active
+    if (!this.isAnimationMode) {
+      this.toggleAnimationMode();
     }
   }
 
@@ -486,5 +662,6 @@ export class AnnotationUI {
     this.propertiesPanel?.remove();
     this.animationControls?.remove();
     this.contextMenu?.remove();
+    this.animationPlayer.dispose();
   }
 }

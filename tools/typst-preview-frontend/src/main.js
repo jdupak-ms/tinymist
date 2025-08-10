@@ -11,6 +11,7 @@ import { wsMain, PreviewMode } from "./ws";
 import { setupDrag } from "./drag";
 import { AnnotationManager } from "./annotations";
 import { AnnotationUI } from "./annotation-ui";
+import { AnimationPlayer } from "./animation-player";
 
 window.documents = [];
 
