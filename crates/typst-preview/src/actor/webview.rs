@@ -18,6 +18,8 @@ pub enum WebviewActorRequest {
     SrcToDocJump(Vec<SrcToDocJumpInfo>),
     // CursorPosition(CursorPosition),
     CursorPaths(Vec<Vec<ElementPoint>>),
+    AnnotationData(String), // JSON annotation data
+    AnnotationCommand(String, String), // Command type and JSON data
 }
 
 fn position_req(
@@ -107,6 +109,16 @@ where
                             self.webview_websocket_conn.send(WsMessage::Binary(msg.into_bytes()))
                               .await.log_error("WebViewActor");
                         }
+                        WebviewActorRequest::AnnotationData(data) => {
+                            let msg = format!("annotation-data,{}", data);
+                            self.webview_websocket_conn.send(WsMessage::Binary(msg.into_bytes()))
+                              .await.log_error("WebViewActor");
+                        }
+                        WebviewActorRequest::AnnotationCommand(command, data) => {
+                            let msg = format!("annotation-command,{},{}", command, data);
+                            self.webview_websocket_conn.send(WsMessage::Binary(msg.into_bytes()))
+                              .await.log_error("WebViewActor");
+                        }
                     }
                 }
                 Some(svg) = self.svg_receiver.recv() => {
@@ -159,6 +171,17 @@ where
                         if let Ok(path) = path {
                             self.render_sender.send(RenderActorRequest::WebviewResolveFrameLoc(path)).log_error("WebViewActor");
                         };
+                    } else if msg.starts_with("annotation-save") {
+                        // Handle annotation save request from frontend
+                        let data = msg.strip_prefix("annotation-save ").unwrap_or("");
+                        self.editor_sender.send(EditorActorRequest::AnnotationSave(data.to_string())).log_error("WebViewActor");
+                    } else if msg.starts_with("annotation-load") {
+                        // Handle annotation load request from frontend
+                        self.editor_sender.send(EditorActorRequest::AnnotationLoad).log_error("WebViewActor");
+                    } else if msg.starts_with("annotation-update") {
+                        // Handle annotation update from frontend
+                        let data = msg.strip_prefix("annotation-update ").unwrap_or("");
+                        self.editor_sender.send(EditorActorRequest::AnnotationUpdate(data.to_string())).log_error("WebViewActor");
                     } else {
                         let err = self.webview_websocket_conn.send(WsMessage::Text(format!("error, received unknown message: {msg}"))).await;
                         log::info!("WebviewActor: received unknown message from websocket: {msg} {err:?}");

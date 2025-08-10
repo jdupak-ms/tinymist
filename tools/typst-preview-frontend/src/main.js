@@ -38,6 +38,11 @@ function setupAnnotationSystem() {
     window.annotationManager = new AnnotationManager(container);
     window.annotationUI = new AnnotationUI(window.annotationManager);
     
+    // Setup auto-save functionality
+    window.annotationManager.on('annotationAdded', () => saveAnnotations());
+    window.annotationManager.on('annotationUpdated', () => saveAnnotations());
+    window.annotationManager.on('annotationRemoved', () => saveAnnotations());
+    
     // Setup keyboard shortcuts
     document.addEventListener('keydown', (e) => {
       if (e.ctrlKey || e.metaKey) {
@@ -61,6 +66,20 @@ function setupAnnotationSystem() {
         }
       }
     });
+  }
+}
+
+function saveAnnotations() {
+  if (window.annotationManager && window.typstWebsocket) {
+    const data = window.annotationManager.exportAnnotations();
+    const message = `annotation-save ${JSON.stringify(data)}`;
+    window.typstWebsocket.send(message);
+  }
+}
+
+function loadAnnotations() {
+  if (window.typstWebsocket) {
+    window.typstWebsocket.send('annotation-load');
   }
 }
 
@@ -209,6 +228,11 @@ function setupVscodeChannel(nextWs) {
         if (window.annotationManager && message.data) {
           window.annotationManager.importAnnotations(message.data);
         }
+        break;
+      }
+      case "requestAnnotations": {
+        console.log("requestAnnotations", message);
+        loadAnnotations();
         break;
       }
     }
