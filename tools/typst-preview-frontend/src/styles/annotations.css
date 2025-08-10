@@ -1,0 +1,376 @@
+/* Annotation system styles */
+
+#annotation-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* Annotation selection styles */
+.annotation-selected {
+  filter: drop-shadow(0 0 5px #007acc);
+  outline: 2px solid #007acc;
+  outline-offset: 2px;
+}
+
+.annotation-selected::before {
+  content: '';
+  position: absolute;
+  top: -3px;
+  left: -3px;
+  right: -3px;
+  bottom: -3px;
+  border: 2px dashed #007acc;
+  pointer-events: none;
+}
+
+/* Annotation toolbar styles */
+.annotation-toolbar {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  gap: 8px;
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.annotation-tool-button {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-foreground, #cccccc);
+  transition: all 0.2s ease;
+}
+
+.annotation-tool-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, #2a2a2a);
+  border-color: var(--vscode-widget-border, #454545);
+}
+
+.annotation-tool-button.active {
+  background-color: var(--vscode-button-background, #0e639c);
+  color: var(--vscode-button-foreground, #ffffff);
+}
+
+.annotation-tool-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.annotation-tool-separator {
+  width: 1px;
+  height: 24px;
+  background-color: var(--vscode-widget-border, #454545);
+  margin: 4px 0;
+}
+
+/* Annotation properties panel */
+.annotation-properties-panel {
+  position: fixed;
+  top: 60px;
+  right: 10px;
+  width: 280px;
+  max-height: 400px;
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 6px;
+  padding: 12px;
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  overflow-y: auto;
+}
+
+.annotation-properties-panel.hidden {
+  display: none;
+}
+
+.annotation-properties-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--vscode-foreground, #cccccc);
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--vscode-widget-border, #454545);
+}
+
+.annotation-property {
+  margin-bottom: 12px;
+}
+
+.annotation-property-label {
+  display: block;
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #999999);
+  margin-bottom: 4px;
+}
+
+.annotation-property-input {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: var(--vscode-input-background, #3c3c3c);
+  border: 1px solid var(--vscode-input-border, #3c3c3c);
+  border-radius: 3px;
+  color: var(--vscode-input-foreground, #cccccc);
+  font-size: 12px;
+}
+
+.annotation-property-input:focus {
+  outline: none;
+  border-color: var(--vscode-focusBorder, #007acc);
+}
+
+.annotation-property-color {
+  width: 40px;
+  height: 24px;
+  border: none;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.annotation-property-range {
+  width: 100%;
+}
+
+.annotation-property-checkbox {
+  margin-right: 8px;
+}
+
+.annotation-property-select {
+  width: 100%;
+  padding: 6px 8px;
+  background-color: var(--vscode-dropdown-background, #3c3c3c);
+  border: 1px solid var(--vscode-dropdown-border, #3c3c3c);
+  border-radius: 3px;
+  color: var(--vscode-dropdown-foreground, #cccccc);
+  font-size: 12px;
+}
+
+/* Animation controls */
+.animation-controls {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--vscode-editor-background, #1e1e1e);
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  z-index: 2000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.animation-controls.hidden {
+  display: none;
+}
+
+.animation-play-button {
+  width: 32px;
+  height: 32px;
+  background: transparent;
+  border: 1px solid var(--vscode-widget-border, #454545);
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--vscode-foreground, #cccccc);
+}
+
+.animation-play-button:hover {
+  background-color: var(--vscode-toolbar-hoverBackground, #2a2a2a);
+}
+
+.animation-timeline {
+  width: 200px;
+  height: 4px;
+  background-color: var(--vscode-progressBar-background, #0e639c);
+  border-radius: 2px;
+  position: relative;
+  cursor: pointer;
+}
+
+.animation-timeline-progress {
+  height: 100%;
+  background-color: var(--vscode-button-background, #0e639c);
+  border-radius: 2px;
+  transition: width 0.1s ease;
+}
+
+.animation-timeline-thumb {
+  width: 12px;
+  height: 12px;
+  background-color: var(--vscode-button-background, #0e639c);
+  border: 2px solid var(--vscode-editor-background, #1e1e1e);
+  border-radius: 50%;
+  position: absolute;
+  top: -4px;
+  transform: translateX(-50%);
+  cursor: grab;
+}
+
+.animation-timeline-thumb:active {
+  cursor: grabbing;
+}
+
+.animation-time-display {
+  font-size: 12px;
+  color: var(--vscode-descriptionForeground, #999999);
+  min-width: 60px;
+  text-align: center;
+}
+
+/* Annotation creation cursors */
+.annotation-cursor-arrow {
+  cursor: crosshair;
+}
+
+.annotation-cursor-highlight {
+  cursor: cell;
+}
+
+/* Drawing preview styles */
+.annotation-preview {
+  opacity: 0.7;
+  stroke-dasharray: 3,3;
+  animation: preview-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes preview-pulse {
+  from {
+    opacity: 0.5;
+  }
+  to {
+    opacity: 0.9;
+  }
+}
+
+/* Drag handles for selected annotations */
+.annotation-drag-handle {
+  fill: var(--vscode-button-background, #0e639c);
+  stroke: var(--vscode-editor-background, #1e1e1e);
+  stroke-width: 2;
+  cursor: grab;
+  opacity: 0.8;
+}
+
+.annotation-drag-handle:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+.annotation-drag-handle:active {
+  cursor: grabbing;
+}
+
+/* Context menu styles */
+.annotation-context-menu {
+  position: fixed;
+  background-color: var(--vscode-menu-background, #2d2d30);
+  border: 1px solid var(--vscode-menu-border, #454545);
+  border-radius: 3px;
+  padding: 4px 0;
+  z-index: 3000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  min-width: 120px;
+}
+
+.annotation-context-menu-item {
+  padding: 6px 12px;
+  font-size: 12px;
+  color: var(--vscode-menu-foreground, #cccccc);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.annotation-context-menu-item:hover {
+  background-color: var(--vscode-menu-selectionBackground, #094771);
+}
+
+.annotation-context-menu-separator {
+  height: 1px;
+  background-color: var(--vscode-menu-separatorBackground, #454545);
+  margin: 4px 0;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .annotation-toolbar {
+    top: 5px;
+    right: 5px;
+    padding: 6px;
+    gap: 6px;
+  }
+  
+  .annotation-tool-button {
+    width: 28px;
+    height: 28px;
+  }
+  
+  .annotation-properties-panel {
+    top: 50px;
+    right: 5px;
+    width: calc(100vw - 20px);
+    max-width: 280px;
+  }
+  
+  .animation-controls {
+    bottom: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 8px;
+    gap: 8px;
+  }
+  
+  .animation-timeline {
+    width: 150px;
+  }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .annotation-selected {
+    outline: 3px solid;
+    outline-offset: 3px;
+  }
+  
+  .annotation-toolbar,
+  .annotation-properties-panel,
+  .animation-controls {
+    border-width: 2px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .annotation-preview {
+    animation: none;
+  }
+  
+  .animation-timeline-progress {
+    transition: none;
+  }
+  
+  .annotation-drag-handle:hover {
+    transform: none;
+  }
+}
